@@ -17,18 +17,18 @@ public class RestaurantController {
     private final RestaurantService restaurantService;
 
     @GetMapping("/get")
-    ResponseEntity<List<RestaurantDTO>> getAllRestaurant() {
+    public ResponseEntity<List<RestaurantDTO>> getAllRestaurant() {
         List<RestaurantDTO> restaurants = restaurantService.findAll();
         return new ResponseEntity<>(restaurants, HttpStatus.OK);
     }
 
     @PostMapping("/add")
-    ResponseEntity<RestaurantDTO> addRestaurant(@RequestBody RestaurantDTO restaurantDTO) {
+    public ResponseEntity<RestaurantDTO> addRestaurant(@RequestBody RestaurantDTO restaurantDTO) {
         return new ResponseEntity<>(restaurantService.add(restaurantDTO),HttpStatus.CREATED);
     }
 
     @GetMapping("/get/{id}")
-    ResponseEntity<RestaurantDTO> getRestaurant(@PathVariable Integer id) {
+    public ResponseEntity<RestaurantDTO> getRestaurant(@PathVariable Integer id) {
         return new ResponseEntity<>(restaurantService.findById(id),HttpStatus.OK);
     }
 }
