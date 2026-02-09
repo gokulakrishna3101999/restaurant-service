@@ -30,13 +30,16 @@ pipeline {
             }
             steps {
                 sh """
-                    mvn org.jacoco:jacoco-maven-plugin:prepare-agent \
-                        sonar:sonar \
+                    mvn clean test \
+                        org.jacoco:jacoco-maven-plugin:prepare-agent \
+                        org.jacoco:jacoco-maven-plugin:report \
+                        org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.login=${SONAR_TOKEN}
+                        -Dsonar.token=${SONAR_TOKEN}
                 """
             }
         }
+
 
         stage('Check Code Coverage') {
             environment {
