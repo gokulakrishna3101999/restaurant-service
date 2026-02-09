@@ -40,7 +40,7 @@ pipeline {
 
         stage('Check Code Coverage') {
             environment {
-                SONAR_TOKEN = "squ_8a439e9e3807c76aada248dbe3d2af9127914baa"
+                SONAR_TOKEN = "squ_2bebcf1d78953aed06bcbbcf5fa678cf51c595a6"
             }
             steps {
                 script {
@@ -49,20 +49,33 @@ pipeline {
 
                     def response = sh(
                         script: """
-                            curl -s -H "Authorization: Bearer ${SONAR_TOKEN}" \
+                            curl -s -f -H "Authorization: Bearer ${SONAR_TOKEN}" \
                             "${SONAR_HOST_URL}api/measures/component?component=${componentKey}&metricKeys=coverage"
                         """,
                         returnStdout: true
                     ).trim()
 
-                    def coverage = readJSON(text: response)
-                                    .component.measures[0].value
-                                    .toDouble()
+                    if (!response) {
+                        error "SonarQube API returned empty response"
+                    }
 
-                    echo "Code Coverage: ${coverage}%"
+                    def json
+                    try {
+                        json = readJSON(text: response)
+                    } catch (e) {
+                        error "Invalid JSON from SonarQube: ${response}"
+                    }
+
+                    if (!json?.component?.measures || json.component.measures.isEmpty()) {
+                        error "Coverage metric not found in SonarQube response"
+                    }
+
+                    def coverage = json.component.measures[0].value.toDouble()
+
+                    echo "✅ Code Coverage: ${coverage}%"
 
                     if (coverage < coverageThreshold) {
-                        error "Coverage ${coverage}% is below threshold ${coverageThreshold}%"
+                        error "❌ Coverage ${coverage}% is below threshold ${coverageThreshold}%"
                     }
                 }
             }
