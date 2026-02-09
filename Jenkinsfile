@@ -73,13 +73,14 @@ pipeline {
                 DOCKERHUB = credentials('DOCKER_HUB_CREDENTIAL')
             }
             steps {
-                sh """
-                    echo "${DOCKERHUB_PSW}" | docker login -u "${DOCKERHUB_USR}" --password-stdin
+                sh '''
+                    echo "$DOCKERHUB_PSW" | docker login -u "$DOCKERHUB_USR" --password-stdin
                     docker build -t siddukrishna/restaurant-microservice:${VERSION} .
                     docker push siddukrishna/restaurant-microservice:${VERSION}
-                """
+                '''
             }
         }
+
 
         stage('Update Image Tag in GitOps') {
             steps {
