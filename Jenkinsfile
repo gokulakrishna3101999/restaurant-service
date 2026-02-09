@@ -40,7 +40,7 @@ pipeline {
 
         stage('Check Code Coverage') {
             environment {
-                SONAR_TOKEN = credentials('SONAR_TOKEN')
+                SONAR_TOKEN = "squ_8a439e9e3807c76aada248dbe3d2af9127914baa"
             }
             steps {
                 script {
