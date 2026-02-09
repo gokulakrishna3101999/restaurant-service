@@ -38,35 +38,35 @@ pipeline {
             }
         }
 
-//         stage('Check Code Coverage') {
-//             environment {
-//                 SONAR_TOKEN = "squ_8a439e9e3807c76aada248dbe3d2af9127914baa"
-//             }
-//             steps {
-//                 script {
-//                     def componentKey = "com.krishna:restaurant"
-//                     def coverageThreshold = 80.0
-//
-//                     def response = sh(
-//                         script: """
-//                             curl -s -H "Authorization: Bearer ${SONAR_TOKEN}" \
-//                             "${SONAR_HOST_URL}api/measures/component?component=${componentKey}&metricKeys=coverage"
-//                         """,
-//                         returnStdout: true
-//                     ).trim()
-//
-//                     def coverage = readJSON(text: response)
-//                                     .component.measures[0].value
-//                                     .toDouble()
-//
-//                     echo "Code Coverage: ${coverage}%"
-//
-//                     if (coverage < coverageThreshold) {
-//                         error "Coverage ${coverage}% is below threshold ${coverageThreshold}%"
-//                     }
-//                 }
-//             }
-//         }
+        stage('Check Code Coverage') {
+            environment {
+                SONAR_TOKEN = "squ_8a439e9e3807c76aada248dbe3d2af9127914baa"
+            }
+            steps {
+                script {
+                    def componentKey = "com.krishna:restaurant"
+                    def coverageThreshold = 80.0
+
+                    def response = sh(
+                        script: """
+                            curl -s -H "Authorization: Bearer ${SONAR_TOKEN}" \
+                            "${SONAR_HOST_URL}api/measures/component?component=${componentKey}&metricKeys=coverage"
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    def coverage = readJSON(text: response)
+                                    .component.measures[0].value
+                                    .toDouble()
+
+                    echo "Code Coverage: ${coverage}%"
+
+                    if (coverage < coverageThreshold) {
+                        error "Coverage ${coverage}% is below threshold ${coverageThreshold}%"
+                    }
+                }
+            }
+        }
 
         stage('Docker Build and Push') {
             environment {
