@@ -1,99 +1,111 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    DOCKERHUB_CREDENTIALS = credentials('DOCKER_HUB_CREDENTIAL')
-    VERSION = "${env.BUILD_ID}"
-
-  }
-
-  tools {
-    maven "Maven"
-  }
-
-  stages {
-
-    stage('Maven Build'){
-        steps{
-        sh 'mvn clean package  -DskipTests'
-        }
+    environment {
+        VERSION = "${BUILD_ID}"
+        SONAR_HOST_URL = "http://54.87.146.64:9000/"
     }
 
-     stage('Run Tests') {
-      steps {
-        sh 'mvn test'
-      }
+    tools {
+        maven "Maven"
     }
 
-    stage('SonarQube Analysis') {
-  steps {
-    sh 'mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dsonar.host.url=http://3.86.191.137:9000/ -Dsonar.login=squ_c9f63d5a8197e2dfda6e3b03d4a16c7d9ad36c67'
-  }
-}
+    stages {
 
-
-   // stage('Check code coverage') {
-   //          steps {
-   //              script {
-   //                  def token = "squ_c9f63d5a8197e2dfda6e3b03d4a16c7d9ad36c67"
-   //                  def sonarQubeUrl = "http://3.86.191.137:9000/api"
-   //                  def componentKey = "com.krishna:restaurant"
-   //                  def coverageThreshold = 80.0
-
-   //                  def response = sh (
-   //                      script: "curl -H 'Authorization: Bearer ${token}' '${sonarQubeUrl}/measures/component?component=${componentKey}&metricKeys=coverage'",
-   //                      returnStdout: true
-   //                  ).trim()
-
-   //                  def coverage = sh (
-   //                      script: "echo '${response}' | jq -r '.component.measures[0].value'",
-   //                      returnStdout: true
-   //                  ).trim().toDouble()
-
-   //                  echo "Coverage: ${coverage}"
-
-   //                  if (coverage < coverageThreshold) {
-   //                      error "Coverage is below the threshold of ${coverageThreshold}%. Aborting the pipeline."
-   //                  }
-   //              }
-   //          }
-   //      }
-
-
-      stage('Docker Build and Push') {
-      steps {
-          sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-          sh 'docker build -t siddukrishna/restaurant-microservice:${VERSION} .'
-          sh 'docker push siddukrishna/restaurant-microservice:${VERSION}'
-      }
-    }
-
-
-     stage('Cleanup Workspace') {
-      steps {
-        deleteDir()
-
-      }
-    }
-
-stage('Update Image Tag in GitOps') {
-      steps {
-         checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[ credentialsId: 'git-ssh', url: 'git@github.gokulakrishna3101999/deployment.git']])
-        script {
-       sh '''
-          sed -i "s/image:.*/image: siddukrishna\\/restaurant-microservice:${VERSION}/" AWS/restaurant-manifest.yaml
-        '''
-          sh 'git checkout master'
-          sh 'git add .'
-          sh 'git commit -m "Update image tag"'
-        sshagent(['git-ssh'])
-            {
-                  sh('git push')
+        stage('Maven Build') {
+            steps {
+                sh 'mvn clean verify -DskipTests'
             }
         }
-      }
+
+        stage('Run Tests') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            environment {
+                SONAR_TOKEN = "squ_8a439e9e3807c76aada248dbe3d2af9127914baa"
+            }
+            steps {
+                sh """
+                    mvn org.jacoco:jacoco-maven-plugin:prepare-agent \
+                        sonar:sonar \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.login=${SONAR_TOKEN}
+                """
+            }
+        }
+
+        stage('Check Code Coverage') {
+            environment {
+                SONAR_TOKEN = credentials('SONAR_TOKEN')
+            }
+            steps {
+                script {
+                    def componentKey = "com.krishna:restaurant"
+                    def coverageThreshold = 80.0
+
+                    def response = sh(
+                        script: """
+                            curl -s -H "Authorization: Bearer ${SONAR_TOKEN}" \
+                            "${SONAR_HOST_URL}api/measures/component?component=${componentKey}&metricKeys=coverage"
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    def coverage = readJSON(text: response)
+                                    .component.measures[0].value
+                                    .toDouble()
+
+                    echo "Code Coverage: ${coverage}%"
+
+                    if (coverage < coverageThreshold) {
+                        error "Coverage ${coverage}% is below threshold ${coverageThreshold}%"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build and Push') {
+            environment {
+                DOCKERHUB = credentials('DOCKER_HUB_CREDENTIAL')
+            }
+            steps {
+                sh """
+                    echo "${DOCKERHUB_PSW}" | docker login -u "${DOCKERHUB_USR}" --password-stdin
+                    docker build -t siddukrishna/restaurant-microservice:${VERSION} .
+                    docker push siddukrishna/restaurant-microservice:${VERSION}
+                """
+            }
+        }
+
+        stage('Update Image Tag in GitOps') {
+            steps {
+                checkout scmGit(
+                    branches: [[name: '*/master']],
+                    userRemoteConfigs: [[
+                        credentialsId: 'git-ssh',
+                        url: 'git@github.com:gokulakrishna3101999/deployment.git'
+                    ]]
+                )
+
+                sh """
+                    sed -i 's|image:.*|image: siddukrishna/restaurant-microservice:${VERSION}|' AWS/restaurant-manifest.yaml
+                    git add AWS/restaurant-manifest.yaml
+                    git commit -m "Update restaurant image to ${VERSION}" || echo "No changes to commit"
+                """
+
+                sshagent(['git-ssh']) {
+                    sh 'git push origin master'
+                }
+            }
+        }
+        stage('Cleanup Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
     }
-
-
-  }
 }
