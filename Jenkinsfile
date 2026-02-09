@@ -26,16 +26,11 @@ pipeline {
 
         stage('SonarQube Analysis') {
             environment {
-                SONAR_TOKEN = "squ_2bebcf1d78953aed06bcbbcf5fa678cf51c595a6"
+                SONAR_TOKEN = "squ_f0a8bbe24da37ee9c9f6701a500b45da72a7195a"
             }
             steps {
                 sh """
-                    mvn clean test \
-                        org.jacoco:jacoco-maven-plugin:prepare-agent \
-                        org.jacoco:jacoco-maven-plugin:report \
-                        org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.token=${SONAR_TOKEN}
+                     mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install sonar:sonar -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN}
                 """
             }
         }
@@ -43,7 +38,7 @@ pipeline {
 
         stage('Check Code Coverage') {
             environment {
-                SONAR_TOKEN = "squ_2bebcf1d78953aed06bcbbcf5fa678cf51c595a6"
+                SONAR_TOKEN = "squ_f0a8bbe24da37ee9c9f6701a500b45da72a7195a"
             }
             steps {
                 script {
