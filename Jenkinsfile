@@ -26,7 +26,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             environment {
-                SONAR_TOKEN = "squ_8a439e9e3807c76aada248dbe3d2af9127914baa"
+                SONAR_TOKEN = "squ_2bebcf1d78953aed06bcbbcf5fa678cf51c595a6"
             }
             steps {
                 sh """
