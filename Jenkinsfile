@@ -86,6 +86,10 @@ pipeline {
           steps {
             sshagent(['git-ssh']) {
               sh '''
+                rm -rf deployment
+                git clone git@github.com:gokulakrishna3101999/deployment.git
+                cd deployment
+
                 git checkout master
                 git pull origin master
 
