@@ -83,26 +83,22 @@ pipeline {
 
 
         stage('Update Image Tag in GitOps') {
-            steps {
-                checkout scmGit(
-                    branches: [[name: '*/master']],
-                    userRemoteConfigs: [[
-                        credentialsId: 'git-ssh',
-                        url: 'git@github.com:gokulakrishna3101999/deployment.git'
-                    ]]
-                )
+          steps {
+            sshagent(['git-ssh']) {
+              sh '''
+                git checkout master
+                git pull origin master
 
-                sh """
-                    sed -i 's|image:.*|image: siddukrishna/restaurant-microservice:${VERSION}|' AWS/restaurant-manifest.yaml
-                    git add AWS/restaurant-manifest.yaml
-                    git commit -m "Update restaurant image to ${VERSION}" || echo "No changes to commit"
-                """
+                sed -i "s|image:.*|image: siddukrishna/restaurant-microservice:${VERSION}|" AWS/restaurant-manifest.yaml
 
-                sshagent(['git-ssh']) {
-                    sh 'git push origin master'
-                }
+                git add AWS/restaurant-manifest.yaml
+                git commit -m "Update restaurant image to ${VERSION}" || echo "No changes to commit"
+                git push origin master
+              '''
             }
+          }
         }
+
         stage('Cleanup Workspace') {
             steps {
                 deleteDir()
